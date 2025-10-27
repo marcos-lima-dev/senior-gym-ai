@@ -1,3 +1,4 @@
+Vamos atualizar o github e o README.md ?
 # 🏋️‍♀️ Senior Gym AI
 
 Bem-vindo à **Academia Amiga da Terceira Idade**! Este é um app web desenvolvido para ajudar pessoas da terceira idade a criar rotinas de exercícios seguras e personalizadas, usando IA e um banco de dados open-source em português. Inspirado em projetos como o [Chef IA](https://github.com/seu-usuario/chef-ia) (se aplicável), ele combina tecnologia acessível com foco em bem-estar.

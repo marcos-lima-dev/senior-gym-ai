@@ -6,8 +6,15 @@ const cors = require('cors');
 const app = express();
 const PORT = 3001;
 
-app.use(express.json());
-app.use(cors());
+// Configura CORS pra permitir o frontend
+app.use(cors({
+  origin: 'http://localhost:3000', // Libera o acesso do app
+  methods: ['POST'], // Só permite POST
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Aumenta o limite do payload
+app.use(express.json({ limit: '1mb' })); // Aumenta pra 1MB (ajuste se precisar)
 
 app.post('/api/ollama-proxy', async (req, res) => {
   try {
@@ -22,7 +29,7 @@ app.post('/api/ollama-proxy', async (req, res) => {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      responseType: 'stream', // Garante que o proxy receba como stream
+      responseType: 'stream',
     });
 
     ollamaResponse.data.pipe(res); // Envia o stream direto pro frontend

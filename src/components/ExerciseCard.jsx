@@ -3,6 +3,12 @@ import { Dumbbell } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const ExerciseCard = ({ exercise }) => {
+  // Validações para evitar undefined
+  const instructions = Array.isArray(exercise?.instructions) ? exercise.instructions : [];
+  const primaryMuscles = Array.isArray(exercise?.primaryMuscles) ? exercise.primaryMuscles : [];
+  const level = exercise?.level || 'Não especificado';
+  const equipment = exercise?.equipment || 'Nenhum';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -12,25 +18,27 @@ const ExerciseCard = ({ exercise }) => {
     >
       <div className="flex items-center gap-3 mb-4">
         <Dumbbell className="w-6 h-6 text-seniorBlue" />
-        <h2 className="text-2xl font-semibold text-gray-800">{exercise.name}</h2>
+        <h2 className="text-2xl font-semibold text-gray-800">
+          {exercise?.name || 'Exercício sem nome'}
+        </h2>
       </div>
       <ul className="space-y-2 text-lg text-gray-700">
-        {exercise.instructions.slice(0, 3).map((step, index) => (
+        {instructions.slice(0, 3).map((step, index) => (
           <li key={index} className="flex items-start gap-2">
             <span className="text-calmGreen">✓</span>
-            {step}
+            {step || 'Passo não disponível'}
           </li>
         ))}
-        {exercise.instructions.length > 3 && (
+        {instructions.length > 3 && (
           <p className="text-sm text-gray-500 italic">...e mais passos!</p>
         )}
       </ul>
       <p className="mt-4 text-base text-gray-600">
         <span className="font-medium">Músculos:</span>{' '}
-        {exercise.primaryMuscles.join(', ')}
+        {primaryMuscles.length > 0 ? primaryMuscles.join(', ') : 'Não especificado'}
       </p>
       <p className="text-sm text-gray-500 mt-1">
-        Nível: {exercise.level} | Equipamento: {exercise.equipment || 'Nenhum'}
+        Nível: {level} | Equipamento: {equipment}
       </p>
     </motion.div>
   );

@@ -2,62 +2,92 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:3001/api/ollama-proxy';
 const MODEL = 'gpt-oss:120b';
-const TIMEOUT_MS = 20000; // Tempo limite de 20s pra evitar travamentos
+const TIMEOUT_MS = 30000; // Mantém 30s, mas pode ajustar se necessário
 
 export const generateRoutine = async (userInput, exercises) => {
   try {
+    // Usa só os primeiros 5 exercícios filtrados
+    const filteredExercises = exercises.slice(0, 5);
     const prompt = `
       Você é um treinador gentil para idosos. Baseado nestes exercícios pré-filtrados: 
-      ${JSON.stringify(exercises)}, 
-      gere uma rotina de 3 exercícios seguros para a terceira idade, com foco em "${userInput}". 
-      Use linguagem simples, com 8-10 repetições, 5-10min no total, e inclua dicas para evitar dores. 
-      Retorne em JSON: { routine: [{ name, instructions, tips }] }.
+      ${JSON.stringify(filteredExercises)}, 
+      gere UMA E APENAS UMA rotina de EXATAMENTE 3 exercícios seguros para a terceira idade, com foco em "${userInput}". 
+      Use linguagem simples, com 8-10 repetições por exercício, totalizando 5-10 minutos. Inclua dicas para evitar dores.
+      **RETORNE SOMENTE UM JSON VÁLIDO NO FORMATO EXATO ABAIXO, SEM TEXTO ADICIONAL:**
+      {
+        "routine": [
+          {
+            "name": "nome_do_exercicio",
+            "instructions": ["passo 1", "passo 2", "passo 3", "faça 8 a 10 repetições"],
+            "tips": ["dica 1", "dica 2"]
+          },
+          {
+            "name": "nome_do_exercicio",
+            "instructions": ["passo 1", "passo 2", "passo 3", "faça 8 a 10 repetições"],
+            "tips": ["dica 1", "dica 2"]
+          },
+          {
+            "name": "nome_do_exercicio",
+            "instructions": ["passo 1", "passo 2", "passo 3", "faça 8 a 10 repetições"],
+            "tips": ["dica 1", "dica 2"]
+          }
+        ]
+      }
+      **NÃO INCLUA NARRATIVA, EXPLICAÇÕES OU TEXTO FORA DO JSON.**
     `;
 
-    console.log('Enviando prompt para Ollama:', prompt); // Log do prompt enviado
+    console.log('Enviando prompt para Ollama:', prompt);
     const response = await axios.post(API_URL, {
       model: MODEL,
       prompt,
-      stream: true, // Indica que queremos streaming
+      stream: true,
     }, {
       headers: { 'Content-Type': 'application/json' },
-      responseType: 'text', // Recebe como texto bruto pra processar linhas
+      responseType: 'text',
       timeout: TIMEOUT_MS,
     });
 
-    console.log('Resposta bruta da IA:', response.data); // Log da resposta completa
+    console.log('Resposta bruta da IA:', response.data);
     let fullResponse = '';
 
-    // Processa a resposta linha por linha
     const lines = response.data.split('\n').filter(line => line.trim() !== '');
     lines.forEach(line => {
       try {
-        const data = JSON.parse(line); // Parseia cada linha individualmente
-        fullResponse += (data.response || data.thinking || ''); // Junta o conteúdo útil
-        console.log('Chunk processado:', data); // Debug por chunk
+        const data = JSON.parse(line);
+        fullResponse += (data.response || data.thinking || '');
+        console.log('Chunk processado:', { line, data });
         if (data.done) {
-          console.log('Stream completo detectado!'); // Confirma fim do stream
+          console.log('Stream completo detectado!');
         }
       } catch (lineError) {
-        console.error('Erro ao parsear linha:', lineError.message, 'Linha:', line); // Log de erro por linha
+        console.error('Erro ao parsear linha:', lineError.message, 'Linha:', line);
       }
     });
 
-    // Verifica se o stream foi completo
     const isComplete = lines.some(line => line.includes('"done":true'));
     if (!isComplete) {
-      console.warn('Resposta incompleta do Ollama, pode estar truncada. Usando o que foi recebido.');
+      console.warn('Resposta incompleta do Ollama, pode estar truncada.');
     }
 
-    // Tenta parsear a resposta acumulada
+    console.log('Resposta acumulada antes do parse:', fullResponse);
     try {
-      const routineJson = JSON.parse(fullResponse || '{}');
-      return routineJson.routine || [];
+      const routineJson = JSON.parse(fullResponse);
+      console.log('JSON parseado com sucesso:', routineJson);
+      if (!routineJson.routine || !Array.isArray(routineJson.routine) || routineJson.routine.length !== 3) {
+        throw new Error('JSON inválido: rotina deve ter exatamente 3 exercícios.');
+      }
+      return routineJson.routine;
     } catch (parseError) {
-      console.error('Erro ao parsear JSON final:', parseError.message);
-      // Tenta extrair um JSON válido se houver
-      const match = fullResponse.match(/{.*routine.*}/s);
-      return match ? JSON.parse(match[0]).routine || [] : [];
+      console.error('Erro ao parsear JSON final:', parseError.message, 'Conteúdo:', fullResponse);
+      const match = fullResponse.match(/{[\s\S]*"routine"[\s\S]*}/);
+      if (match) {
+        console.log('JSON parcial extraído:', match[0]);
+        const partialJson = JSON.parse(match[0]);
+        if (partialJson.routine && Array.isArray(partialJson.routine) && partialJson.routine.length === 3) {
+          return partialJson.routine;
+        }
+      }
+      return [];
     }
   } catch (error) {
     console.error('Erro na IA:', error.message);

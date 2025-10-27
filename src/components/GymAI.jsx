@@ -9,31 +9,74 @@ const GymAI = () => {
   const [filteredExercises, setFilteredExercises] = useState([]);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [voiceError, setVoiceError] = useState(null);
   const { transcript, listening, browserSupportsSpeechRecognition } = useSpeechRecognition();
 
   useEffect(() => {
-    if (transcript) setUserInput(transcript); // Atualiza input com voz
-    const safeExercises = exercisesData.filter(ex =>
-      ex.level === 'iniciante' &&
-      (ex.primaryMuscles.includes('abdominais') || ex.primaryMuscles.includes('braços') || ex.primaryMuscles.includes('pernas')) &&
-      ex.mechanic === 'isolado'
-    );
-    setFilteredExercises(safeExercises.slice(0, 5));
-  }, [transcript]);
+    if (transcript) {
+      console.log('Transcript recebido:', transcript); // Debug voz
+      setUserInput(transcript);
+    }
+    // Filtra exercícios relevantes antes de enviar
+    const safeExercises = exercisesData.filter(ex => 
+      ex.level === 'iniciante' && // Só iniciante pra idosos
+      (ex.primaryMuscles.includes(userInput.toLowerCase()) || 
+       (userInput.toLowerCase().includes('braço') && ex.primaryMuscles.includes('braços')) ||
+       (userInput.toLowerCase().includes('perna') && ex.primaryMuscles.includes('pernas')) ||
+       (userInput.toLowerCase().includes('abdomin') && ex.primaryMuscles.includes('abdominais')))
+    ).slice(0, 10); // Limita a 10 pra otimizar
+    setFilteredExercises(safeExercises);
+  }, [transcript, userInput]);
 
   const handleSubmit = async () => {
     if (!userInput.trim()) return;
+    if (listening) stopListening(); // Para a voz automaticamente se estiver escutando
     setIsLoading(true);
-    const routine = await generateRoutine(userInput, exercisesData);
-    setFilteredExercises(routine);
-    setIsLoading(false);
+    try {
+      const routine = await generateRoutine(userInput, exercisesData);
+      // Mescla os dados originais com a rotina gerada, normalizando e validando
+      const enrichedRoutine = routine.map(ex => {
+        const normalizedName = ex.name?.toLowerCase().trim();
+        const originalEx = exercisesData.find(e => 
+          e.name.toLowerCase().trim() === normalizedName
+        );
+        return originalEx ? {
+          ...originalEx,
+          ...ex,
+          id: originalEx.id || ex.id || Date.now() + Math.random(), // Garante chave única
+          primaryMuscles: Array.isArray(ex.primaryMuscles) ? ex.primaryMuscles : originalEx.primaryMuscles || [],
+          instructions: Array.isArray(ex.instructions) ? ex.instructions : originalEx.instructions || [],
+          tips: Array.isArray(ex.tips) ? ex.tips : originalEx.tips || [],
+        } : {
+          ...ex,
+          id: ex.id || Date.now() + Math.random(), // Fallback se não encontrar
+          primaryMuscles: [],
+          instructions: [],
+          tips: [],
+        };
+      });
+      setFilteredExercises(enrichedRoutine);
+    } catch (error) {
+      console.error('Erro ao gerar rotina:', error);
+      setVoiceError('Ops, algo deu errado ao gerar a rotina. Tente novamente!');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const startListening = () => SpeechRecognition.startListening({ continuous: true, language: 'pt-BR' });
-  const stopListening = () => SpeechRecognition.stopListening();
+  const startListening = () => {
+    console.log('Iniciando reconhecimento de voz...');
+    SpeechRecognition.startListening({ continuous: true, language: 'pt-BR' });
+  };
+
+  const stopListening = () => {
+    console.log('Parando reconhecimento de voz.');
+    SpeechRecognition.stopListening();
+  };
 
   if (!browserSupportsSpeechRecognition) {
-    return <p className="text-lg text-gray-600">Desculpe, seu navegador não suporta reconhecimento de voz.</p>;
+    setVoiceError('Desculpe, seu navegador não suporta reconhecimento de voz.');
+    return <p className="text-red-500">{voiceError}</p>;
   }
 
   return (
@@ -73,14 +116,39 @@ const GymAI = () => {
           {isLoading ? 'Carregando...' : 'Gerar Rotina'}
         </button>
       </div>
+      {voiceError && <p className="text-red-500 mb-4">{voiceError}</p>}
       {isLoading ? (
         <LoadingSpinner />
       ) : filteredExercises.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 w-full max-w-4xl">
-          {filteredExercises.map(ex => (
-            <ExerciseCard key={ex.id} exercise={ex} />
-          ))}
-        </div>
+        <>
+          {/* Explicação antes dos cards */}
+          <div className="bg-white p-4 rounded-lg shadow-md max-w-md w-full mb-6 border border-calmGreen">
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">O que esses exercícios trabalham?</h2>
+            <p className="text-gray-700">
+              Esses exercícios foram escolhidos pra te dar mais força pra remada em canoa! Veja como eles ajudam:
+              <ul className="list-disc pl-5 mt-2">
+                <li>
+                  <strong>Rosca Martelo Alternada</strong>: Fortalece os <strong>bíceps</strong> (músculos da frente do braço) e um pouco os antebraços. Isso ajuda a puxar o remo com mais força!
+                </li>
+                <li>
+                  <strong>Abdominal 3/4</strong>: Trabalha o <strong>core</strong> (barriga e cintura), dando estabilidade pra manter a postura ao remar.
+                </li>
+                <li>
+                  <strong>Roda Abdominal</strong>: Também fortalece o <strong>core</strong> e um pouco os <strong>ombros</strong>, ajudando no equilíbrio e na resistência na remada.
+                </li>
+              </ul>
+              <p className="mt-2 text-gray-600">
+                Com 8 a 10 repetições cada, em 5-10 minutos, você vai ganhando força de forma segura e tranquila!
+              </p>
+            </p>
+          </div>
+          {/* Grid de cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 w-full max-w-4xl">
+            {filteredExercises.map(ex => (
+              <ExerciseCard key={ex.id} exercise={ex} />
+            ))}
+          </div>
+        </>
       ) : (
         <p className="mt-4 text-lg text-gray-600">Nenhuma rotina gerada ainda. Tente um input!</p>
       )}
