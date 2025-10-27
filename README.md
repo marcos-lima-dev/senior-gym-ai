@@ -1,70 +1,26 @@
-# Getting Started with Create React App
+# 🏋️‍♀️ Senior Gym AI
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Bem-vindo à **Academia Amiga da Terceira Idade**! Este é um app web desenvolvido para ajudar pessoas da terceira idade a criar rotinas de exercícios seguras e personalizadas, usando IA e um banco de dados open-source em português. Inspirado em projetos como o [Chef IA](https://github.com/seu-usuario/chef-ia) (se aplicável), ele combina tecnologia acessível com foco em bem-estar.
 
-## Available Scripts
+## 🎯 O que é isso?
+O **Senior Gym AI** é uma ferramenta que:
+- Filtra exercícios simples (ex.: "Abdominal 3/4", "Isquiotibiais 90/90") de um dataset de mais de 800 opções.
+- Usa IA (Ollama) pra gerar rotinas personalizadas baseadas em inputs como "braços" ou "equilíbrio".
+- Oferece interface amigável, com voz e design acessível pra idosos.
+- É open-source e feito com ❤️ pra democratizar a saúde física.
 
-In the project directory, you can run:
+## 🚀 Status Atual
+- **MVP em progresso**: Input de texto e geração de rotinas via IA funcionando (com ajustes de CORS em andamento).
+- **Funcionalidades futuras**: Input por voz, imagens nos exercícios, e histórico de rotinas.
 
-### `npm start`
+## 🛠️ Tecnologias
+- **Frontend**: React 18, Tailwind CSS (mobile-first), Framer Motion (animações).
+- **IA**: Ollama Cloud (via proxy local).
+- **Dados**: [exercicios-bd-ptbr](https://github.com/joao-gugel/exercicios-bd-ptbr) (mais de 800 exercícios em PT-BR).
+- **Ferramentas**: Node.js, npm, GitHub Actions (em planejamento).
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## 📋 Como Usar
+1. **Clone o repo**:
+   ```bash
+   git clone https://github.com/marcos-lima-dev/senior-gym-ai.git
+   cd senior-gym-ai
