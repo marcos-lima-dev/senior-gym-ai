@@ -356,13 +356,14 @@ Melhorar meu equilíbrio..."
             )}
 
             {/* Cards de Exercícios */}
-            <div className="max-w-2xl mx-auto space-y-4">
+            <div className="max-w-2xl mx-auto space-y-4 flex flex-col items-center">
               {filteredExercises.map((ex, index) => (
                 <motion.div
                   key={ex.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 + index * 0.1 }}
+                  className="w-full"
                 >
                   <ExerciseCard exercise={ex} />
                 </motion.div>
