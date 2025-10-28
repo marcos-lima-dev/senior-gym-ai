@@ -2,38 +2,42 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:3001/api/ollama-proxy';
 const MODEL = 'gpt-oss:120b';
-const TIMEOUT_MS = 30000; // Mantém 30s, mas pode ajustar se necessário
+const TIMEOUT_MS = 30000;
 
 export const generateRoutine = async (userInput, exercises) => {
   try {
-    // Usa só os primeiros 5 exercícios filtrados
     const filteredExercises = exercises.slice(0, 5);
     const prompt = `
       Você é um treinador gentil para idosos. Baseado nestes exercícios pré-filtrados: 
       ${JSON.stringify(filteredExercises)}, 
-      gere UMA E APENAS UMA rotina de EXATAMENTE 3 exercícios seguros para a terceira idade, com foco em "${userInput}". 
-      Use linguagem simples, com 8-10 repetições por exercício, totalizando 5-10 minutos. Inclua dicas para evitar dores.
-      **RETORNE SOMENTE UM JSON VÁLIDO NO FORMATO EXATO ABAIXO, SEM TEXTO ADICIONAL:**
+      gere UMA E APENAS UMA rotina de EXATAMENTE 3 exercícios seguros para a terceira idade, 
+      com foco em: "${userInput}". 
+      Use linguagem simples, com 8-10 repetições por exercício, totalizando 5-10 minutos. 
+      Inclua dicas para evitar dores e EXPLIQUE BREVEMENTE (2-3 frases) como esses exercícios 
+      ajudam no objetivo "${userInput}". 
+      **COMECE DIRETAMENTE COM O JSON, SEM NARRATIVA OU TEXTO ADICIONAL ANTES!**
+      
+      **RETORNE SOMENTE UM JSON VÁLIDO NO FORMATO EXATO ABAIXO:**
       {
+        "explanation": "Explicação breve de como os exercícios ajudam no objetivo",
         "routine": [
           {
             "name": "nome_do_exercicio",
-            "instructions": ["passo 1", "passo 2", "passo 3", "faça 8 a 10 repetições"],
+            "instructions": ["passo 1", "passo 2", "faça 8 a 10 repetições"],
             "tips": ["dica 1", "dica 2"]
           },
           {
             "name": "nome_do_exercicio",
-            "instructions": ["passo 1", "passo 2", "passo 3", "faça 8 a 10 repetições"],
+            "instructions": ["passo 1", "passo 2", "faça 8 a 10 repetições"],
             "tips": ["dica 1", "dica 2"]
           },
           {
             "name": "nome_do_exercicio",
-            "instructions": ["passo 1", "passo 2", "passo 3", "faça 8 a 10 repetições"],
+            "instructions": ["passo 1", "passo 2", "faça 8 a 10 repetições"],
             "tips": ["dica 1", "dica 2"]
           }
         ]
       }
-      **NÃO INCLUA NARRATIVA, EXPLICAÇÕES OU TEXTO FORA DO JSON.**
     `;
 
     console.log('Enviando prompt para Ollama:', prompt);
@@ -73,21 +77,21 @@ export const generateRoutine = async (userInput, exercises) => {
     try {
       const routineJson = JSON.parse(fullResponse);
       console.log('JSON parseado com sucesso:', routineJson);
-      if (!routineJson.routine || !Array.isArray(routineJson.routine) || routineJson.routine.length !== 3) {
-        throw new Error('JSON inválido: rotina deve ter exatamente 3 exercícios.');
+      if (!routineJson.explanation || !routineJson.routine || !Array.isArray(routineJson.routine) || routineJson.routine.length !== 3) {
+        throw new Error('JSON inválido: deve ter explanation e exatamente 3 exercícios.');
       }
-      return routineJson.routine;
+      return routineJson;
     } catch (parseError) {
       console.error('Erro ao parsear JSON final:', parseError.message, 'Conteúdo:', fullResponse);
-      const match = fullResponse.match(/{[\s\S]*"routine"[\s\S]*}/);
+      const match = fullResponse.match(/{[\s\S]*"explanation"[\s\S]*"routine"[\s\S]*}/);
       if (match) {
         console.log('JSON parcial extraído:', match[0]);
         const partialJson = JSON.parse(match[0]);
-        if (partialJson.routine && Array.isArray(partialJson.routine) && partialJson.routine.length === 3) {
-          return partialJson.routine;
+        if (partialJson.explanation && partialJson.routine && Array.isArray(partialJson.routine) && partialJson.routine.length === 3) {
+          return partialJson;
         }
       }
-      return [];
+      return { explanation: '', routine: [] };
     }
   } catch (error) {
     console.error('Erro na IA:', error.message);
@@ -96,6 +100,6 @@ export const generateRoutine = async (userInput, exercises) => {
     } else if (error.response?.status === 401) {
       console.warn('Erro 401 – verifique a API key no .env.');
     }
-    return [];
+    return { explanation: '', routine: [] };
   }
 };

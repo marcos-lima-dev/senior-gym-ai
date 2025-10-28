@@ -10,49 +10,75 @@ const GymAI = () => {
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [voiceError, setVoiceError] = useState(null);
+  const [routineExplanation, setRoutineExplanation] = useState(''); // Novo estado
   const { transcript, listening, browserSupportsSpeechRecognition } = useSpeechRecognition();
 
   useEffect(() => {
     if (transcript) {
-      console.log('Transcript recebido:', transcript); // Debug voz
       setUserInput(transcript);
     }
-    // Filtra exercícios relevantes antes de enviar
+
+    // Mapeamento semântico para melhorar o filtro
+    const muscleMapping = {
+      'braço': ['biceps', 'triceps', 'antebraços', 'braços'],
+      'perna': ['quadriceps', 'isquiotibiais', 'panturrilhas', 'pernas', 'coxa'],
+      'abdominal': ['abdominais', 'core', 'oblíquos'],
+      'costas': ['dorsais', 'trapézio', 'lombar', 'costas'],
+      'ombro': ['deltoides', 'ombros'],
+      'peito': ['peitorais', 'peito'],
+      'equilíbrio': ['core', 'pernas', 'tornozelos'],
+      'joelho': ['quadriceps', 'isquiotibiais'],
+      'subir a escada': ['quadriceps', 'glúteos', 'pernas'], // Novo mapeamento
+    };
+
+    // Normaliza o input
+    const normalizedInput = userInput.toLowerCase().trim();
+    
+    // Busca palavras-chave no mapeamento
+    let targetMuscles = [];
+    Object.keys(muscleMapping).forEach(key => {
+      if (normalizedInput.includes(key)) {
+        targetMuscles.push(...muscleMapping[key]);
+      }
+    });
+
+    // Fallback se não encontrar nada específico
+    if (targetMuscles.length === 0) {
+      targetMuscles = [normalizedInput];
+    }
+
+    // Filtra exercícios relevantes
     const safeExercises = exercisesData.filter(ex => 
-      ex.level === 'iniciante' && // Só iniciante pra idosos
-      (ex.primaryMuscles.includes(userInput.toLowerCase()) || 
-       (userInput.toLowerCase().includes('braço') && ex.primaryMuscles.includes('braços')) ||
-       (userInput.toLowerCase().includes('perna') && ex.primaryMuscles.includes('pernas')) ||
-       (userInput.toLowerCase().includes('abdomin') && ex.primaryMuscles.includes('abdominais')))
-    ).slice(0, 10); // Limita a 10 pra otimizar
+      ex.level === 'iniciante' && 
+      targetMuscles.some(muscle => 
+        ex.primaryMuscles?.some(pm => pm.toLowerCase().includes(muscle.toLowerCase()))
+      )
+    ).slice(0, 10);
+
     setFilteredExercises(safeExercises);
   }, [transcript, userInput]);
 
   const handleSubmit = async () => {
     if (!userInput.trim()) return;
-    if (listening) stopListening(); // Para a voz automaticamente se estiver escutando
+    if (listening) stopListening();
     setIsLoading(true);
     try {
-      const routine = await generateRoutine(userInput, exercisesData);
-      // Mescla os dados originais com a rotina gerada, normalizando e validando
-      const enrichedRoutine = routine.map(ex => {
+      const routine = await generateRoutine(userInput, filteredExercises); // Fix crítico
+      if (routine.explanation) {
+        setRoutineExplanation(routine.explanation); // Seta explicação da IA
+      }
+      const enrichedRoutine = routine.routine.map(ex => {
         const normalizedName = ex.name?.toLowerCase().trim();
         const originalEx = exercisesData.find(e => 
           e.name.toLowerCase().trim() === normalizedName
         );
-        return originalEx ? {
-          ...originalEx,
-          ...ex,
-          id: originalEx.id || ex.id || Date.now() + Math.random(), // Garante chave única
-          primaryMuscles: Array.isArray(ex.primaryMuscles) ? ex.primaryMuscles : originalEx.primaryMuscles || [],
-          instructions: Array.isArray(ex.instructions) ? ex.instructions : originalEx.instructions || [],
-          tips: Array.isArray(ex.tips) ? ex.tips : originalEx.tips || [],
-        } : {
-          ...ex,
-          id: ex.id || Date.now() + Math.random(), // Fallback se não encontrar
-          primaryMuscles: [],
-          instructions: [],
-          tips: [],
+        return {
+          ...originalEx, // Mantém dados originais como fallback
+          ...ex, // Sobrescreve com os dados da IA, preservando instructions e tips
+          id: originalEx?.id || ex.id || Date.now() + Math.random(),
+          primaryMuscles: ex.primaryMuscles || originalEx?.primaryMuscles || [],
+          instructions: ex.instructions || originalEx?.instructions || [],
+          tips: ex.tips || originalEx?.tips || [],
         };
       });
       setFilteredExercises(enrichedRoutine);
@@ -121,27 +147,13 @@ const GymAI = () => {
         <LoadingSpinner />
       ) : filteredExercises.length > 0 ? (
         <>
-          {/* Explicação antes dos cards */}
-          <div className="bg-white p-4 rounded-lg shadow-md max-w-md w-full mb-6 border border-calmGreen">
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">O que esses exercícios trabalham?</h2>
-            <p className="text-gray-700">
-              Esses exercícios foram escolhidos pra te dar mais força pra remada em canoa! Veja como eles ajudam:
-              <ul className="list-disc pl-5 mt-2">
-                <li>
-                  <strong>Rosca Martelo Alternada</strong>: Fortalece os <strong>bíceps</strong> (músculos da frente do braço) e um pouco os antebraços. Isso ajuda a puxar o remo com mais força!
-                </li>
-                <li>
-                  <strong>Abdominal 3/4</strong>: Trabalha o <strong>core</strong> (barriga e cintura), dando estabilidade pra manter a postura ao remar.
-                </li>
-                <li>
-                  <strong>Roda Abdominal</strong>: Também fortalece o <strong>core</strong> e um pouco os <strong>ombros</strong>, ajudando no equilíbrio e na resistência na remada.
-                </li>
-              </ul>
-              <p className="mt-2 text-gray-600">
-                Com 8 a 10 repetições cada, em 5-10 minutos, você vai ganhando força de forma segura e tranquila!
-              </p>
-            </p>
-          </div>
+          {/* Explicação dinâmica gerada pela IA */}
+          {routineExplanation && (
+            <div className="bg-white p-4 rounded-lg shadow-md max-w-md w-full mb-6 border border-calmGreen">
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">Como esses exercícios te ajudam?</h2>
+              <p className="text-gray-700">{routineExplanation}</p>
+            </div>
+          )}
           {/* Grid de cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 w-full max-w-4xl">
             {filteredExercises.map(ex => (
