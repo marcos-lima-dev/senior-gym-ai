@@ -332,4 +332,4 @@ npx shadcn@latest add [component-name]
 4. Configurar integração com Gemini AI
 5. Adicionar testes (opcional)
 
-Bora codar! 🚀
+Boora codar! 🚀
